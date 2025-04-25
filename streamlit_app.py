@@ -5,13 +5,12 @@ from googleapiclient.discovery import build
 import os
 import requests
 import pandas as pd
-
-inventory=pd.read_csv("inventory.csv")
+global weather, recipe
+Recpie=pd.read_csv("indian_food.csv")
 
 
 
 gemini_api_key = "AIzaSyBYkCnr6h6YxXT_WM3Gk4vD0vVBy-SW9jY"
-gooogle_cal="AIzaSyCSX_aweG9Ey5uRF03Wc8711F0lm1lqwoE"
 WEATHERSTACK_API_KEY = "5b29a320d021aa5aa8f035f4ecd38fac"  # Replace with your API key
 WEATHERSTACK_BASE_URL = "http://api.weatherstack.com/current"
 location = "Mumbai"  # Replace with your desired location
@@ -368,11 +367,30 @@ def generate_seasonal_recipe(weather):
     elif season == "Pleasant":
         prompt = "I want a recipe for the springtime."
     
+def determine_season(temperature):
+    if temperature < 20:
+        return "winter"
+    elif temperature > 30:
+        return "summer"
+    else:
+        return "plesant"
+    
 
-    response = model.generate_content(prompt + prompts)
+def get_recipe_from_csv(season):
+    """Fetch a recipe from the CSV file based on the season."""
+    filtered_recipes = recipe[recipe["season"].str.lower() == season.lower()]
+    if not filtered_recipes.empty:
+        recipe = filtered_recipes.sample(1).iloc[0]  # Randomly select one recipe
+        return f"**{recipe['name']}**\n\n**Ingredients:**\n{recipe['ingredients']}\n\n**Instructions:**\n{recipe.get('instructions', 'No instructions available.')}"
+    else:
+        return "No recipes found for the current season."
+
+def generate_seasonal_recipe(weather):
+    season = determine_season(weather["temperature"])
+    csv_recipe = get_recipe_from_csv(season)
+    prompt = f"The current season is {season}. Based on this, suggest a recipe. Here is an example:\n\n{csv_recipe}\n\nNow, provide another recipe suggestion:"
+    response = model.generate(prompt)
     return response.text if response else "Unable to generate a recipe."
-
-
 
 
 def generate_custom_recipe(custom_prompt,prompts):
@@ -416,11 +434,4 @@ with col2:
             st.write(recipe)
         else:
             st.error("Please enter a valid prompt.")
-
-
-
-
-
-
-
 
