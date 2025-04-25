@@ -298,3 +298,9 @@ Instructions:
 6. Cook on medium-low heat for 5-7 minutes, stirring occasionally, until the paneer is heated through and the spices are well incorporated.
 7. Stir in garam masala and garnish with fresh coriander leaves.
 8. Serve hot with roti, paratha, or as a filling for sandwiches.
+
+
+
+
+
+upa34pj80rfo9qhv2kdi8p52sganl389.apps.googleusercontent.com.json

@@ -4,6 +4,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 import os
 import requests
+import pandas as pd
 
 gemini_api_key = "AIzaSyBYkCnr6h6YxXT_WM3Gk4vD0vVBy-SW9jY"
 gooogle_cal="AIzaSyCSX_aweG9Ey5uRF03Wc8711F0lm1lqwoE"
@@ -345,28 +346,91 @@ Instructions:
 6. Cook on medium-low heat for 5-7 minutes, stirring occasionally, until the paneer is heated through and the spices are well incorporated.
 7. Stir in garam masala and garnish with fresh coriander leaves.
 8. Serve hot with roti, paratha, or as a filling for sandwiches."""
-def get_calendar_service():
-    # Load credentials from a file or environment variable
+def get_current_month():
     creds = None
-    if os.path.exists("credentials.json"):
-        creds = Credentials.from_authorized_user_file("credentials.json", ["https://www.googleapis.com/auth/calendar.readonly"])
+    if os.path.exists("client_secret_1062067466665-upa34pj80rfo9qhv2kdi8p52sganl389.apps.googleusercontent.com.json"):
+        creds = Credentials.from_authorized_user_file("client_secret_1062067466665-upa34pj80rfo9qhv2kdi8p52sganl389.apps.googleusercontent.com.json", ["https://www.googleapis.com/auth/calendar.readonly"])
     else:
         st.error("Credentials file not found. Please upload 'credentials.json'.")
+        return None
 
     if creds:
-        return build("calendar", "v3", credentials=creds)
-    return None
+        service = build("calendar", "v3", credentials=creds)
+        # Fetch the current date from the primary calendar
+        events_result = service.events().list(calendarId='primary', maxResults=1, singleEvents=True, orderBy='startTime').execute()
+        events = events_result.get('items', [])
+        if events:
+            # Extract the current date from the first event's start time
+            current_date = events[0]['start']['dateTime'] if 'dateTime' in events[0]['start'] else events[0]['start']['date']
+            return int(current_date.split("-")[1])  # Extract the month as an integer
+        else:
+            st.error("Unable to fetch events from Google Calendar.")
+            return None
+    else:
+        return None
 
+def determine_season(temperature, month):
+    if month in [12, 1, 2]:
+        return "Winter"
+    elif month in [3, 4, 5]:
+        return "Summer" if temperature > 30 else "Spring"
+    elif month in [6, 7, 8, 9]:
+        return "Monsoon"
+    else:
+        return "Autumn"
 
+def generate_seasonal_recipe(season):
+    prompts = {
+        "Winter": "I want a warm and hearty dish for winter.",
+        "Summer": "I want a light and refreshing dish for summer.",
+        "Monsoon": "I want a spicy and comforting dish for the monsoon season.",
+        "Autumn": "I want a flavorful dish for autumn.",
+        "Spring": "I want a fresh and vibrant dish for spring."
+    }
+    prompt = prompts.get(season, "I want a seasonal dish.")
+    response = model.generate_content(prompt)
+    return response.text if response else "Unable to generate a recipe."
+
+def generate_custom_recipe(prompt):
+    response = model.generate_content(prompt)
+    return response.text if response else "Unable to generate a recipe."
+weather = get_weather(location)
+current_month = get_current_month()
+season = determine_season(weather["temperature"], current_month)
 
 # Show title and description.
 st.title("🥘 Indian food recpie genarator.")
 st.write(
     "This is an AI-powered recipe generator that provides Indian food recipes based on your input. "
-    "It helps giving your recpies on the current wether of mumbai"
+    "It helps giving your recpies on the current wether of mumbai. "
+    " You can also input your own custom prompt to get a recipe tailored to your needs."
 )
+if "error" not in weather:
+    st.subheader(f"🌤️ Current Weather in {weather['location']}")
+    st.write(f"**Temperature:** {weather['temperature']}°C")
+    st.write(f"**Description:** {weather['description']}")
+    st.write(f"**Season:** {season}")
+else:
+    st.error(weather["error"])
 
 
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("🍲 Suggest Seasonal Recipe"):
+        recipe = generate_seasonal_recipe(season)
+        st.subheader("Seasonal Recipe Suggestion")
+        st.write(recipe)
+
+with col2:
+    custom_prompt = st.text_input("Enter your custom prompt:")
+    if st.button("✍️ Generate Custom Recipe"):
+        if custom_prompt.strip():
+            recipe = generate_custom_recipe(custom_prompt)
+            st.subheader("Custom Recipe Suggestion")
+            st.write(recipe)
+        else:
+            st.error("Please enter a valid prompt.")
 
 
 
