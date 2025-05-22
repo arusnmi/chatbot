@@ -2,9 +2,11 @@ import streamlit as st
 # import google.generativeai as genai
 # from google.oauth2.credentials import Credentials
 # from googleapiclient.discovery import build
-# import os
+import os
 # import requests
-# import pandas as pd
+import pandas as pd
+import Weather
+import GENAI 
 # global weather, recipe
 Recpie=pd.read_csv("indian_food.csv")
 
